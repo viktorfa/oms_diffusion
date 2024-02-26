@@ -1,0 +1,9 @@
+torch
+torchvision
+numpy
+diffusers
+opencv-python
+transformers
+safetensors
+controlnet-aux
+accelerate

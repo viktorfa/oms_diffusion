@@ -4,7 +4,7 @@ from diffusers.pipelines import StableDiffusionPipeline
 import gradio as gr
 import argparse
 
-from garment_adapter.garment_diffusion import ClothAdapter
+from oms_diffusion.garment_adapter.garment_diffusion import ClothAdapter
 
 parser = argparse.ArgumentParser(description="oms diffusion")
 parser.add_argument("--model_path", type=str, required=False)

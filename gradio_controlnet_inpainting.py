@@ -3,8 +3,9 @@ from diffusers import UniPCMultistepScheduler, AutoencoderKL, ControlNetModel
 from diffusers.pipelines import StableDiffusionControlNetPipeline
 import gradio as gr
 import argparse
-from garment_adapter.garment_diffusion import ClothAdapter
 import numpy as np
+
+from oms_diffusion.garment_adapter.garment_diffusion import ClothAdapter
 
 parser = argparse.ArgumentParser(description="oms diffusion")
 parser.add_argument("--model_path", type=str, required=False)

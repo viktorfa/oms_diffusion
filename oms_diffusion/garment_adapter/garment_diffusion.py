@@ -7,6 +7,10 @@ from safetensors import safe_open
 from huggingface_hub import hf_hub_download
 from garment_seg.process import load_seg_model, generate_mask
 from utils.utils import is_torch2_available, prepare_image, prepare_mask
+from transformers import (
+    AutoProcessor,
+    CLIPVisionModelWithProjection,
+)
 
 if is_torch2_available():
     from .attention_processor import REFAttnProcessor2_0 as REFAttnProcessor
@@ -15,31 +19,49 @@ if is_torch2_available():
 else:
     from .attention_processor import REFAttnProcessor, AttnProcessor
 
-DEFAULT_HG_ROOT = Path(os.getcwd()) / "oodt_models"
+DEFAULT_HG_ROOT = Path(os.getcwd()) / "oms_models"
 
 
 class ClothAdapter:
     def __init__(
-        self, sd_pipe, ref_path, device, set_seg_model=True, hg_root: str = None
+        self,
+        sd_pipe,
+        ref_path,
+        device,
+        set_seg_model=True,
+        oms_diffusion_checkpoint: str = "oms_diffusion_100000.safetensors",
+        hg_root: str = None,
+        cache_dir: str = None,
     ):
         self.device = device
         self.pipe = sd_pipe.to(self.device)
+        self.cache_dir = cache_dir
         self.set_adapter(self.pipe.unet, "write")
         if hg_root is None:
             print(f"Setting default hg_root to {DEFAULT_HG_ROOT}")
             hg_root = DEFAULT_HG_ROOT
         self.hg_root = hg_root
 
+        self.auto_processor = AutoProcessor.from_pretrained(
+            "openai/clip-vit-large-patch14",
+            cache_dir=self.cache_dir,
+        )
+        self.image_encoder = CLIPVisionModelWithProjection.from_pretrained(
+            "openai/clip-vit-large-patch14",
+            cache_dir=self.cache_dir,
+        ).to(self.device)
+
         ref_unet = copy.deepcopy(sd_pipe.unet)
         state_dict = {}
         if not ref_path:
-            ref_path = f"{self.hg_root}/checkpoints/oms_diffusion_100000.safetensors"
+            ref_path = f"{self.hg_root}/checkpoints/{oms_diffusion_checkpoint}"
         if not Path(ref_path).exists():
             print("Downloading reference model")
             hf_hub_download(
                 repo_id="shinehugging/oms-diffusion",
-                filename="oms_diffusion_100000.safetensors",
+                filename=oms_diffusion_checkpoint,
                 local_dir=f"{self.hg_root}/checkpoints",
+                cache_dir=self.cache_dir,
             )
         with safe_open(ref_path, framework="pt", device="cpu") as f:
             for key in f.keys():
@@ -52,6 +74,16 @@ class ClothAdapter:
             self.set_seg_model()
         self.attn_store = {}
 
+    def tokenize_captions(self, captions, max_length):
+        inputs = self.pipe.tokenizer(
+            captions,
+            max_length=max_length,
+            padding="max_length",
+            truncation=True,
+            return_tensors="pt",
+        )
+        return inputs.input_ids
+
     def set_seg_model(
         self,
     ):
@@ -62,6 +94,7 @@ class ClothAdapter:
                 repo_id="shinehugging/oms-diffusion",
                 filename="cloth_segm.pth",
                 local_dir=f"{self.hg_root}/checkpoints",
+                cache_dir=self.cache_dir,
             )
         self.seg_net = load_seg_model(checkpoint_path, device=self.device)
 
@@ -87,6 +120,8 @@ class ClothAdapter:
         num_inference_steps=20,
         height=512,
         width=384,
+        image=None,
+        inpaint_image=None,
         **kwargs,
     ):
         if cloth_mask_image is None:
@@ -146,6 +181,7 @@ class ClothAdapter:
                 "attn_store": self.attn_store,
                 "do_classifier_free_guidance": guidance_scale > 1.0,
             },
+            image=inpaint_image,
             **kwargs,
         ).images
 
