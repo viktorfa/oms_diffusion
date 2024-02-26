@@ -3,8 +3,8 @@ import pdb
 import numpy as np
 
 import torch
-from diffusers import UniPCMultistepScheduler, AutoencoderKL
-from diffusers.pipelines import StableDiffusionPipeline
+from diffusers import UniPCMultistepScheduler, AutoencoderKL, ControlNetModel
+from diffusers.pipelines import StableDiffusionControlNetPipeline
 from PIL import Image
 import argparse
 
@@ -51,12 +51,40 @@ if __name__ == "__main__":
     vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").to(
         dtype=torch.float16
     )
-    pipe = StableDiffusionPipeline.from_pretrained(
-        args.pipe_path, vae=vae, torch_dtype=torch.float16
+    control_net_openpose = ControlNetModel.from_pretrained(
+        "lllyasviel/control_v11p_sd15_inpaint", torch_dtype=torch.float16
+    )
+    pipe = StableDiffusionControlNetPipeline.from_pretrained(
+        args.pipe_path,
+        vae=vae,
+        torch_dtype=torch.float16,
+        controlnet=control_net_openpose,
     )
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
 
     full_net = ClothAdapter(pipe, args.model_path, device, hg_root=args.hg_root)
     images = full_net.generate(cloth_image, image=inpaint_image)
+
+    mask_image = (
+        Image.open(args.person_mask_path).resize((384, 512), Image.LANCZOS).convert("L")
+    )  # Grayscale
+    person_image_resized = person_image.resize((384, 512), Image.LANCZOS).convert(
+        "RGBA"
+    )
+
     for i, image in enumerate(images[0]):
+        # Assuming garment_image is the output from your pipeline and already loaded
+        # Resize garment to match person image dimensions (if necessary)
+        garment_image = image.convert("RGBA")
+
+        # Convert mask_image to a binary mask (you might need to adjust the threshold)
+        mask_array = np.array(mask_image)
+        binary_mask = np.where(mask_array > 128, 255, 0).astype(np.uint8)
+
+        # Create an alpha composite image to blend based on the mask
+        garment_image.putalpha(Image.fromarray(binary_mask))
+        combined_image = Image.alpha_composite(person_image_resized, garment_image)
+        combined_image.save(
+            os.path.join(output_path, "out_combined_" + str(i) + ".png")
+        )
         image.save(os.path.join(output_path, "out_" + str(i) + ".png"))
