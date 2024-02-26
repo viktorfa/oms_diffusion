@@ -26,6 +26,8 @@ def make_inpaint_condition(image, image_mask):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="oms diffusion")
     parser.add_argument("--cloth_path", type=str, required=True)
+    parser.add_argument("--person_path", type=str, required=True)
+    parser.add_argument("--person_mask_path", type=str, required=True)
     parser.add_argument("--model_path", type=str, required=False)
     parser.add_argument("--hg_root", type=str, required=False)
     parser.add_argument(
@@ -41,6 +43,10 @@ if __name__ == "__main__":
         os.makedirs(output_path)
 
     cloth_image = Image.open(args.cloth_path).convert("RGB")
+    person_image = Image.open(args.person_path).convert("RGB")
+    person_mask_image = Image.open(args.person_mask_path).convert("RGB")
+
+    inpaint_image = make_inpaint_condition(person_image, person_mask_image)
 
     vae = AutoencoderKL.from_pretrained("stabilityai/sd-vae-ft-mse").to(
         dtype=torch.float16
@@ -51,6 +57,6 @@ if __name__ == "__main__":
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
 
     full_net = ClothAdapter(pipe, args.model_path, device, hg_root=args.hg_root)
-    images = full_net.generate(cloth_image)
+    images = full_net.generate(cloth_image, image=inpaint_image)
     for i, image in enumerate(images[0]):
         image.save(os.path.join(output_path, "out_" + str(i) + ".png"))
