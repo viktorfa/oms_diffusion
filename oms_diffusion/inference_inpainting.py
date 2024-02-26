@@ -49,7 +49,7 @@ class InpaintingModel(AbstractInferenceModel):
         cloth_image: os.PathLike | Image.Image,
         person_image: os.PathLike | Image.Image,
         person_mask_image: os.PathLike | Image.Image,
-        cloth_mask_image: os.PathLike | Image.Image = None,
+        face_mask_image: os.PathLike | Image.Image = None,
         cloth_mask_image: os.PathLike | Image.Image = None,
         use_face_mask: bool = True,
         **kwargs,
