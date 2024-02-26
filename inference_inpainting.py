@@ -13,6 +13,7 @@ if __name__ == "__main__":
     parser.add_argument("--face_mask_path", type=str, required=False)
     parser.add_argument("--model_path", type=str, required=False)
     parser.add_argument("--hg_root", type=str, required=False)
+    parser.add_argument("--cache_dir", type=str, required=False)
     parser.add_argument(
         "--pipe_path", type=str, default="SG161222/Realistic_Vision_V4.0_noVAE"
     )
