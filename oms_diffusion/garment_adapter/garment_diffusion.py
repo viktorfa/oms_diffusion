@@ -5,12 +5,13 @@ from pathlib import Path
 import os
 from safetensors import safe_open
 from huggingface_hub import hf_hub_download
-from garment_seg.process import load_seg_model, generate_mask
-from utils.utils import is_torch2_available, prepare_image, prepare_mask
 from transformers import (
     AutoProcessor,
     CLIPVisionModelWithProjection,
 )
+
+from oms_diffusion.garment_seg.process import load_seg_model, generate_mask
+from oms_diffusion.utils.utils import is_torch2_available, prepare_image, prepare_mask
 
 if is_torch2_available():
     from .attention_processor import REFAttnProcessor2_0 as REFAttnProcessor
