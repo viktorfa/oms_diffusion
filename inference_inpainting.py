@@ -41,6 +41,8 @@ if __name__ == "__main__":
     person_mask_image = Image.open(args.person_mask_path).convert("L")
     if args.face_mask_path:
         face_mask_image = Image.open(args.face_mask_path).convert("L")
+    else:
+        face_mask_image = None
 
     images, cloth_mask_image, superposed_images = inference_model.generate(
         cloth_image=cloth_image,
