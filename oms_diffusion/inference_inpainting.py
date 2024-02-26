@@ -60,7 +60,7 @@ class InpaintingModel(AbstractInferenceModel):
             person_image = Image.open(person_image).convert("RGB")
         if not isinstance(person_mask_image, Image.Image):
             person_mask_image = Image.open(person_mask_image).convert("L")
-        if not isinstance(face_mask_image, Image.Image):
+        if face_mask_image is not None and not isinstance(face_mask_image, Image.Image):
             face_mask_image = Image.open(face_mask_image).convert("L")
         if cloth_mask_image is not None and not isinstance(
             cloth_mask_image, Image.Image
@@ -76,7 +76,7 @@ class InpaintingModel(AbstractInferenceModel):
             **kwargs,
         )
 
-        if not person_mask_image:
+        if not face_mask_image:
             use_face_mask = False
         mask_image = (
             (face_mask_image if use_face_mask else person_mask_image)
