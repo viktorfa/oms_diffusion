@@ -38,7 +38,7 @@ class GenerateModel(AbstractInferenceModel):
     def generate(
         self,
         cloth_image: os.PathLike | Image.Image,
-        cloth_mask_image: os.PathLike | Image.Image,
+        cloth_mask_image: os.PathLike | Image.Image = None,
         **kwargs,
     ):
         if not isinstance(cloth_image, Image.Image):
