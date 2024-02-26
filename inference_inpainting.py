@@ -10,7 +10,7 @@ if __name__ == "__main__":
     parser.add_argument("--cloth_path", type=str, required=True)
     parser.add_argument("--person_path", type=str, required=True)
     parser.add_argument("--person_mask_path", type=str, required=True)
-    parser.add_argument("--face_mask_path", type=str, required=True)
+    parser.add_argument("--face_mask_path", type=str, required=False)
     parser.add_argument("--model_path", type=str, required=False)
     parser.add_argument("--hg_root", type=str, required=False)
     parser.add_argument(
