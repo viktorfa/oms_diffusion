@@ -52,6 +52,7 @@ class InpaintingModel(AbstractInferenceModel):
         face_mask_image: os.PathLike | Image.Image = None,
         cloth_mask_image: os.PathLike | Image.Image = None,
         use_face_mask: bool = True,
+        no_superpose: bool = False,
         **kwargs,
     ):
         if not isinstance(cloth_image, Image.Image):
@@ -76,29 +77,33 @@ class InpaintingModel(AbstractInferenceModel):
             **kwargs,
         )
 
-        if not face_mask_image:
-            use_face_mask = False
-        mask_image = (
-            (face_mask_image if use_face_mask else person_mask_image)
-            .resize((384, 512), Image.LANCZOS)
-            .convert("L")
-        )  # Grayscale
-        person_image_resized = person_image.resize((384, 512), Image.LANCZOS).convert(
-            "RGBA"
-        )
-        mask_array = np.array(mask_image)
-        binary_mask = (
-            np.where(mask_array < 128, 255, 0).astype(np.uint8)
-            if use_face_mask
-            else np.where(mask_array > 128, 255, 0).astype(np.uint8)
-        )
-
         # The face can get severely distorted or not look like the input person.
         superposed_images = []
-        for image in images:
-            result_image = image.convert("RGBA")
-            result_image.putalpha(Image.fromarray(binary_mask))
-            superposed_image = Image.alpha_composite(person_image_resized, result_image)
-            superposed_images.append(superposed_image)
+        if no_superpose:
+            return images, cloth_mask_image, images
+        else:
+            if not face_mask_image or no_superpose:
+                use_face_mask = False
+            mask_image = (
+                (face_mask_image if use_face_mask else person_mask_image)
+                .resize((384, 512), Image.LANCZOS)
+                .convert("L")
+            )  # Grayscale
+            person_image_resized = person_image.resize(
+                (384, 512), Image.LANCZOS
+            ).convert("RGBA")
+            mask_array = np.array(mask_image)
+            binary_mask = (
+                np.where(mask_array < 128, 255, 0).astype(np.uint8)
+                if use_face_mask
+                else np.where(mask_array > 128, 255, 0).astype(np.uint8)
+            )
+            for image in images:
+                result_image = image.convert("RGBA")
+                result_image.putalpha(Image.fromarray(binary_mask))
+                superposed_image = Image.alpha_composite(
+                    person_image_resized, result_image
+                )
+                superposed_images.append(superposed_image)
 
         return images, cloth_mask_image, superposed_images
